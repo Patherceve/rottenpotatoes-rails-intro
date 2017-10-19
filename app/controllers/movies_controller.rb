@@ -12,6 +12,17 @@ class MoviesController < ApplicationController
 
   def index
     sorting = params[:sort_by]
+    checkedRating = params[:ratings]
+    checkedRating = checkedRating.keys if checkedRating != nil
+    
+    unless checkedRating == nil
+      checkedRating.each do |rating|
+        @checkedRating ||= []
+        @checkedRating.push(rating)
+      end
+    end
+    
+    @all_ratings = Movie.ratings
     if sorting == "title"
       @movies = Movie.all.order(:title)
       @title_class = "hilite"
@@ -21,7 +32,10 @@ class MoviesController < ApplicationController
       @rd_class = "hilite"
     end
     if sorting == nil
-      @movies = Movie.all
+      @movies = Movie.where(rating: checkedRating) unless checkedRating == nil
+      if checkedRating == nil
+        @movies = Movie.all
+      end
     end
   end
 
