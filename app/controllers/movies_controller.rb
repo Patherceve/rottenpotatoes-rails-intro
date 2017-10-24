@@ -11,33 +11,40 @@ class MoviesController < ApplicationController
   end
 
   def index
-    sorting = params[:sort_by]
-    checkedRating = params[:ratings]
-    checkedRating = checkedRating.keys if checkedRating != nil
-    
-    unless checkedRating == nil
-      checkedRating.each do |rating|
-        @checkedRating ||= []
-        @checkedRating.push(rating)
-      end
-    end
-    
     @all_ratings = Movie.ratings
-    if sorting == "title"
-      @movies = Movie.all.order(:title)
-      @title_class = "hilite"
+    @movies = Movie.all
+    @ratings_hash = Hash[*@all_ratings.map {|key| [key, 1]}.flatten]
+    
+    if (params[:session] == "clear")
+      session[:sort_by] = nil
+      session[:ratings] = nil
     end
-    if sorting == "RD"
-      @movies = Movie.all.order(:release_date)
-      @rd_class = "hilite"
+    
+    if (params[:ratings] != nil)
+      @ratings_hash = params[:ratings]
+      @movies = @movies.where(:rating => @ratings_hash.keys)
+      session[:ratings] = @ratings_hash
     end
-    if sorting == nil
-      @movies = Movie.where(rating: checkedRating) unless checkedRating == nil
-      if checkedRating == nil
-        @movies = Movie.all
+    
+    if (params[:sort_by] != nil)
+      case params[:sort_by]
+      when "title"
+        @movies = @movies.order(:title)
+        @class_title = "hilite"
+        session[:sort_by] = "title"
+      when "release_date"
+        @movies = @movies.order(:release_date)
+        @class_release_date = "hilite"
+        session[:sort_by] = "release_date"
       end
     end
-  end
+    
+    if (params[:sort_by] == nil || params[:ratings] == nil)
+      redirect_hash = (session[:ratings] != nil) ? Hash[*session[:ratings].keys.map {|key| ["ratings[#{key}]", 1]}.flatten] : { :ratings => @ratings_hash }
+      redirect_hash[:sort_by] = (session[:sort_by] != nil) ? session[:sort_by] : "none"
+      redirect_to movies_path(redirect_hash) and return
+    end
+  end 
 
   def new
     # default: render 'new' template
